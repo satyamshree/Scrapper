@@ -1,6 +1,5 @@
 import re  # ✅ Regex for price cleanup
 import time
-
 import pandas as pd
 from openpyxl import load_workbook  # ✅ Added for Excel column auto-adjustment
 from selenium import webdriver
@@ -9,40 +8,49 @@ from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
 
 
-def scrape_flipkart():
-    url = "https://www.flipkart.com/search?q=iphone+16"
+def scrape_data(url, container_xpath, name_xpath, price_xpath):
+    """
+    Scrapes product data from a website using user-provided XPaths.
+    Saves the data as CSV and Excel files.
 
-    # Initialize Chrome WebDriver
+    :param url: The target webpage URL
+    :param container_xpath: XPath for locating the product containers
+    :param name_xpath: XPath for extracting product names (relative to container)
+    :param price_xpath: XPath for extracting product prices (relative to container)
+    :return: Paths to the saved CSV and Excel files
+    """
+
+    # ✅ Initialize Chrome WebDriver
     options = webdriver.ChromeOptions()
-    options.add_argument("--start-maximized")  # Open browser for manual checks
+    options.add_argument("--headless")  # Run browser in the background (optional)
+    options.add_argument("--disable-gpu")
+    options.add_argument("--no-sandbox")
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
 
     driver.get(url)
-    time.sleep(5)  # Allow page to load
+    time.sleep(5)  # Allow time for page load
 
-    data = []
+    data = []  # ✅ List to store scraped data
 
     try:
-        # ✅ Corrected product container XPath
-        products = driver.find_elements(By.XPATH, "//*[@id='container']//div[contains(@class, 'KzDlHZ')]/../../..")
+        # ✅ Find product containers using container XPath
+        products = driver.find_elements(By.XPATH, container_xpath)
 
         if not products:
-            print("⚠️ No iPhone products found. Check the XPath again!")
+            print("⚠️ No products found. Check the XPath and website structure.")
 
         for product in products:
             try:
-                # ✅ Name and Price XPaths (Confirmed Correct)
-                name_element = product.find_element(By.XPATH, ".//div[@class='KzDlHZ']")
-                price_element = product.find_element(By.XPATH, ".//div[@class='Nx9bqj _4b5DiR']")
-
+                # ✅ Extract product name (relative to container)
+                name_element = product.find_element(By.XPATH, name_xpath)
                 name = name_element.text.strip()
+
+                # ✅ Extract product price (relative to container)
+                price_element = product.find_element(By.XPATH, price_xpath)
                 price = price_element.text.strip()
+                price = re.sub(r"[^\d]", "", price)  # ✅ Clean price (keep only digits)
 
-                # ✅ CHANGED: Fix encoding issue and clean the price
-                price = price.encode("ascii", "ignore").decode()  # Removes non-ASCII characters
-                price = re.sub(r"[^\d]", "", price)  # Keeps only digits
-
-                print(f"✅ {name} | {price}")  # Debugging output
+                print(f"✅ {name} | {price}")  # Debug output
                 data.append([name, price])
 
             except Exception as e:
@@ -51,13 +59,13 @@ def scrape_flipkart():
     except Exception as e:
         print(f"❌ Error: {e}")
 
-    # ✅ CHANGED: Save data as CSV
+    # ✅ Save data as CSV
     df = pd.DataFrame(data, columns=["Product Name", "Price"])
-    csv_path = "data/iphone_prices.csv"
+    csv_path = "data/scraped_data.csv"
     df.to_csv(csv_path, index=False, encoding="utf-8")
 
-    # ✅ CHANGED: Save data as Excel (.xlsx) for auto-adjusting column width
-    excel_path = "data/iphone_prices.xlsx"
+    # ✅ Save data as Excel
+    excel_path = "data/scraped_data.xlsx"
     df.to_excel(excel_path, index=False, engine="openpyxl")
 
     # ✅ Auto-adjust column width in Excel
@@ -72,12 +80,11 @@ def scrape_flipkart():
                     max_length = max(max_length, len(str(cell.value)))
             except:
                 pass
-        ws.column_dimensions[col_letter].width = max_length + 2  # Add padding
+        ws.column_dimensions[col_letter].width = max_length + 2  # ✅ Add padding
 
     wb.save(excel_path)
 
     print(f"✅ Data saved to {csv_path} and auto-formatted {excel_path}")
     driver.quit()
 
-# Run the scraper
-# scrape_flipkart()
+    return csv_path, excel_path  # ✅ Return file paths for frontend download
