@@ -1,0 +1,5 @@
+2025-03-20 00:51:36,190 - INFO - ====== WebDriver manager ======
+2025-03-20 00:51:40,627 - INFO - Get LATEST chromedriver version for google-chrome
+2025-03-20 00:51:40,666 - INFO - Get LATEST chromedriver version for google-chrome
+2025-03-20 00:51:40,697 - INFO - Driver [C:\Users\satya\.wdm\drivers\chromedriver\win64\134.0.6998.90\chromedriver-win32/chromedriver.exe] found in cache
+2025-03-20 00:52:01,700 - WARNING - No data scraped!
